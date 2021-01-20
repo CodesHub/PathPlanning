@@ -7,11 +7,12 @@ import os
 import sys
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) +
                 "/../../Sampling_based_Planning/")
 
-from Sampling_based_Planning.rrt_2D import env, plotting, utils, queue
+from Sampling_based_Planning.rrt_2D import env, plotting, utils, queue1
 
 
 class Node:
@@ -44,26 +45,37 @@ class RrtStar:
         self.obs_boundary = self.env.obs_boundary
 
     def planning(self):
+        self.plotting.plot_grid("RRT*")
+
         for k in range(self.iter_max):
             node_rand = self.generate_random_node(self.goal_sample_rate)
             node_near = self.nearest_neighbor(self.vertex, node_rand)
-            node_new = self.new_state(node_near, node_rand)
+            node_new = self.new_state(node_near, node_rand)  # 向随机点前进固定步长产生node_new
 
-            if k % 500 == 0:
-                print(k)
+            if k % 10 == 0 and not k == 0:
+                # print(k)
+                plt.cla()
+                self.plotting.plot_grid_nosub("RRT*" + " N={:d}".format(k))
+                self.plotting.plot_visited(self.vertex, False)
+                index = self.search_goal_parent()  # 找到目的地附近总代价最小的节点
+                if index != 0:
+                    self.path = self.extract_path(self.vertex[index])
+                    self.plotting.plot_path(self.path)
+                plt.pause(0.001)
 
             if node_new and not self.utils.is_collision(node_near, node_new):
-                neighbor_index = self.find_near_neighbor(node_new)
+                neighbor_index = self.find_near_neighbor(node_new)  # 添加node_new搜索半径内的节点到neighbor_index
                 self.vertex.append(node_new)
 
                 if neighbor_index:
-                    self.choose_parent(node_new, neighbor_index)
-                    self.rewire(node_new, neighbor_index)
+                    self.choose_parent(node_new, neighbor_index)  # 重新设置node_new的父节点为neighbor_index到node_new代价最小的节点
+                    self.rewire(node_new, neighbor_index)  # 如果neighbor_index里节点通过node_new到达后代价变小，则设置node_new为其父节点
+                '''重新选择父节点使新生成的节点路径代价尽可能小，重布线使得生成新节点后的随机树减少冗余通路，减小路径代价,
+                每一次的重布线都尽可能的为最终路径代价减小创造机会。'''
 
-        index = self.search_goal_parent()
-        self.path = self.extract_path(self.vertex[index])
-
-        self.plotting.animation(self.vertex, self.path, "rrt*, N = " + str(self.iter_max))
+        # index = self.search_goal_parent()
+        # self.path = self.extract_path(self.vertex[index])
+        # self.plotting.animation(self.vertex, self.path, "rrt*, N = " + str(self.iter_max))
 
     def new_state(self, node_start, node_goal):
         dist, theta = self.get_distance_and_angle(node_start, node_goal)
@@ -91,14 +103,15 @@ class RrtStar:
 
     def search_goal_parent(self):
         dist_list = [math.hypot(n.x - self.s_goal.x, n.y - self.s_goal.y) for n in self.vertex]
-        node_index = [i for i in range(len(dist_list)) if dist_list[i] <= self.step_len]
+        node_index = [i for i in range(len(dist_list)) if dist_list[i] <= self.step_len]  # 找到所有接近目的地范围的节点
 
         if len(node_index) > 0:
             cost_list = [dist_list[i] + self.cost(self.vertex[i]) for i in node_index
                          if not self.utils.is_collision(self.vertex[i], self.s_goal)]
-            return node_index[int(np.argmin(cost_list))]
+            if len(cost_list) > 0:
+                return node_index[int(np.argmin(cost_list))]
 
-        return len(self.vertex) - 1
+        return 0  # len(self.vertex) - 1
 
     def get_new_cost(self, node_start, node_end):
         dist, _ = self.get_distance_and_angle(node_start, node_end)
@@ -141,7 +154,7 @@ class RrtStar:
         return cost
 
     def update_cost(self, parent_node):
-        OPEN = queue.QueueFIFO()
+        OPEN = queue1.QueueFIFO()
         OPEN.put(parent_node)
 
         while not OPEN.empty():

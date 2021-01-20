@@ -68,9 +68,9 @@ class IRrtStar:
             if self.X_soln:
                 cost = {node: self.Cost(node) for node in self.X_soln}
                 x_best = min(cost, key=cost.get)
-                c_best = cost[x_best]
+                c_best = cost[x_best]  # 将目前已经搜索到的最短路径作为cbest
 
-            x_rand = self.Sample(c_best, dist, x_center, C)
+            x_rand = self.Sample(c_best, dist, x_center, C)  # 在椭圆里均匀采样
             x_nearest = self.Nearest(self.V, x_rand)
             x_new = self.Steer(x_nearest, x_rand)
 
@@ -95,7 +95,7 @@ class IRrtStar:
 
                 if self.InGoalRegion(x_new):
                     if not self.utils.is_collision(x_new, self.x_goal):
-                        self.X_soln.add(x_new)
+                        self.X_soln.add(x_new)  # 所有可能的路径
                         # new_cost = self.Cost(x_new) + self.Line(x_new, self.x_goal)
                         # if new_cost < c_best:
                         #     c_best = new_cost
@@ -103,6 +103,9 @@ class IRrtStar:
 
             if k % 20 == 0:
                 self.animation(x_center=x_center, c_best=c_best, dist=dist, theta=theta)
+                self.path = self.ExtractPath(x_best)
+                plt.plot([x for x, _ in self.path], [y for _, y in self.path], '-r')
+                plt.pause(0.001)
 
         self.path = self.ExtractPath(x_best)
         self.animation(x_center=x_center, c_best=c_best, dist=dist, theta=theta)
@@ -297,7 +300,7 @@ def main():
     x_start = (18, 8)  # Starting node
     x_goal = (37, 18)  # Goal node
 
-    rrt_star = IRrtStar(x_start, x_goal, 1, 0.10, 12, 1000)
+    rrt_star = IRrtStar(x_start, x_goal, 1, 0.10, 12, 5000)
     rrt_star.planning()
 
 

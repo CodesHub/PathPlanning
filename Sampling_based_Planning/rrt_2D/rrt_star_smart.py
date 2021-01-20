@@ -64,7 +64,7 @@ class RrtStarSmart:
             if k % 200 == 0:
                 print(k)
 
-            if (k - n) % b == 0 and len(self.beacons) > 0:
+            if (k - n) % b == 0 and len(self.beacons) > 0:  # 以一定概率50%在锚点附近选择采样点
                 x_rand = self.Sample(self.beacons)
             else:
                 x_rand = self.Sample()
@@ -73,13 +73,13 @@ class RrtStarSmart:
             x_new = self.Steer(x_nearest, x_rand)
 
             if x_new and not self.utils.is_collision(x_nearest, x_new):
-                X_near = self.Near(self.V, x_new)
+                X_near = self.Near(self.V, x_new)  # 找到x_new附近的点
                 self.V.append(x_new)
 
                 if X_near:
                     # choose parent
                     cost_list = [self.Cost(x_near) + self.Line(x_near, x_new) for x_near in X_near]
-                    x_new.parent = X_near[int(np.argmin(cost_list))]
+                    x_new.parent = X_near[int(np.argmin(cost_list))]  # 重新设置x_new的父节点为x_near中到node_new代价最小的节点
 
                     # rewire
                     c_min = self.Cost(x_new)
@@ -87,16 +87,21 @@ class RrtStarSmart:
                         c_near = self.Cost(x_near)
                         c_new = c_min + self.Line(x_new, x_near)
                         if c_new < c_near:
-                            x_near.parent = x_new
+                            x_near.parent = x_new   # 如果x_near里节点通过x_new到达后代价变小，则设置x_new为其父节点
 
-                if not InitPathFlag and self.InitialPathFound(x_new):
+                if not InitPathFlag and self.InitialPathFound(x_new):  # 找到一条较优路径到目的地
                     InitPathFlag = True
                     n = k
 
                 if InitPathFlag:
-                    self.PathOptimization(x_new)
+                    self.PathOptimization(x_new)  # 从目标节点到新节点开始，向父节点优化路径为直线（此时，新节点）
+
                 if k % 5 == 0:
                     self.animation()
+                    self.path = self.ExtractPath()
+                    plt.plot([x for x, _ in self.path], [y for _, y in self.path], '-r')
+                    plt.plot(x_new.x, x_new.y, 'ob', markersize=3)
+                    plt.pause(0.001)
 
         self.path = self.ExtractPath()
         self.animation()
@@ -110,17 +115,17 @@ class RrtStarSmart:
 
         while node.parent:
             node_parent = node.parent
-            if not self.utils.is_collision(node_parent, node_end):
+            if not self.utils.is_collision(node_parent, node_end):  # 如果目标节点到采样节点x_new及其父节点到无障碍，直接跨级连接x_new或其父节点，优化为直线
                 node_end.parent = node_parent
             else:
                 direct_cost_new += self.Line(node, node_end)
-                node_end = node
+                node_end = node  # 目标节点到父节点碰到障碍物，则跳过该父节点，node_end=node，继续向父节点优化
 
             node = node_parent
 
         if direct_cost_new < self.direct_cost_old:
             self.direct_cost_old = direct_cost_new
-            self.UpdateBeacons()
+            self.UpdateBeacons()  # 根据当前优化的路径的代价，更新锚点，使描点在当前路径下。锚点：路径中贴近障碍物角点的点
 
     def UpdateBeacons(self):
         node = self.x_goal
@@ -303,7 +308,7 @@ def main():
     x_start = (18, 8)  # Starting node
     x_goal = (37, 18)  # Goal node
 
-    rrt = RrtStarSmart(x_start, x_goal, 1.5, 0.10, 0, 1000)
+    rrt = RrtStarSmart(x_start, x_goal, 1.5, 0.10, 0, 2000)
     rrt.planning()
 
 

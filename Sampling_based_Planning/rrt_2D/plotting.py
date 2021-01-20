@@ -21,6 +21,7 @@ class Plotting:
         self.obs_bound = self.env.obs_boundary
         self.obs_circle = self.env.obs_circle
         self.obs_rectangle = self.env.obs_rectangle
+        self.ax = None
 
     def animation(self, nodelist, path, name, animation=False):
         self.plot_grid(name)
@@ -34,7 +35,47 @@ class Plotting:
 
     def plot_grid(self, name):
         fig, ax = plt.subplots()
+        self.ax = ax
 
+        for (ox, oy, w, h) in self.obs_bound:
+            ax.add_patch(
+                patches.Rectangle(
+                    (ox, oy), w, h,
+                    edgecolor='black',
+                    facecolor='black',
+                    fill=True
+                )
+            )
+
+        for (ox, oy, w, h) in self.obs_rectangle:
+            ax.add_patch(
+                patches.Rectangle(
+                    (ox, oy), w, h,
+                    edgecolor='black',
+                    facecolor='gray',
+                    fill=True
+                )
+            )
+
+        for (ox, oy, r) in self.obs_circle:
+            ax.add_patch(
+                patches.Circle(
+                    (ox, oy), r,
+                    edgecolor='black',
+                    facecolor='gray',
+                    fill=True
+                )
+            )
+
+        plt.plot(self.xI[0], self.xI[1], "bs", linewidth=3)
+        plt.plot(self.xG[0], self.xG[1], "gs", linewidth=3)
+
+        plt.title(name)
+        plt.axis("equal")
+
+    def plot_grid_nosub(self, name):
+        # fig, ax = plt.subplots()
+        ax = self.ax
         for (ox, oy, w, h) in self.obs_bound:
             ax.add_patch(
                 patches.Rectangle(

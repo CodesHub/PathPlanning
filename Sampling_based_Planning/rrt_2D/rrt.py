@@ -7,6 +7,7 @@ import os
 import sys
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) +
                 "/../../Sampling_based_Planning/")
@@ -41,10 +42,28 @@ class Rrt:
         self.obs_boundary = self.env.obs_boundary
 
     def planning(self):
+
+        self.plotting.plot_grid("RRT")
+        plt.show()
+        plt.ion()
         for i in range(self.iter_max):
             node_rand = self.generate_random_node(self.goal_sample_rate)
             node_near = self.nearest_neighbor(self.vertex, node_rand)
             node_new = self.new_state(node_near, node_rand)
+
+            plt.cla()
+            self.plotting.plot_grid_nosub("RRT")
+            self.plotting.plot_visited(self.vertex, False)
+            plt.plot([node_near.x, node_new.x, node_rand.x], [node_near.y, node_new.y, node_rand.y], "--b")
+            plt.plot([node_rand.x], [node_rand.y], "oy", markersize=3)
+            # plt.text([node_rand.x], [node_rand.y + .2], 'node_rand')
+            plt.plot([node_near.x], [node_near.y], "oy", markersize=3)
+            # plt.text([node_near.x], [node_near.y + .2], 'node_near')
+            plt.plot([node_new.x], [node_new.y], "^r", markersize=3)
+            # plt.text([node_new.x], [node_new.y + .2], 'node_new')
+            plt.pause(0.005)
+            # plt.ioff()
+            # plt.show()
 
             if node_new and not self.utils.is_collision(node_near, node_new):
                 self.vertex.append(node_new)
@@ -101,7 +120,7 @@ def main():
     x_start = (2, 2)  # Starting node
     x_goal = (49, 24)  # Goal node
 
-    rrt = Rrt(x_start, x_goal, 0.5, 0.05, 10000)
+    rrt = Rrt(x_start, x_goal, 0.5, 0.01, 10000)
     path = rrt.planning()
 
     if path:
